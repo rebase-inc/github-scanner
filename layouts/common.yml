@@ -1,0 +1,14 @@
+version: '2'
+
+services:
+  rq_dashboard:
+    container_name: rq_dashboard
+    build:
+      context: ../services/rq_dashboard
+    image: rq_dashboard
+    ports:
+      - "4444:4444"
+  redis:
+    container_name: redis
+    image: redis
+    restart: always
