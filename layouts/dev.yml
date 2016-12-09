@@ -9,6 +9,12 @@ services:
     extends:
       file: common.yml
       service: redis
+  default_queue:
+    extends:
+      file: common.yml
+      service: default_queue
+    environment:
+      LOG_LEVEL: "DEBUG"
 
     # rq_default:
     #   image: rebase/dev-rq-default
