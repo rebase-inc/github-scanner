@@ -2,7 +2,7 @@ from os import environ
 from multiprocessing import current_process
 
 import rsyslog
-from redis import StrictRedis, ConnectionPool
+from redis import Redis, ConnectionPool
 from rq import Worker, Queue, Connection
 
 # IMPORT HERE ANY PACKAGES THE QUEUE WILL NEED
@@ -15,6 +15,3 @@ with Connection(Redis(connection_pool = pool)):
     worker = Worker(queue)
     current_process().name = environ['HOSTNAME'] + worker.name[0:5]
     worker.work(logging_level = environ['LOG_LEVEL'])
-    return 0
-
-return 1

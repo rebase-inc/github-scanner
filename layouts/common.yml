@@ -3,6 +3,7 @@ version: '2'
 services:
   rq_dashboard:
     container_name: rq_dashboard
+    hostname: rq_dashboard
     build:
       context: ../services/rq_dashboard
     image: rq_dashboard
@@ -15,6 +16,7 @@ services:
 
   population_analyzer:
     container_name: population_analyzer
+    hostname: population_analyzer
     image: population_analyzer
     build:
       context: ../services/population_analyzer
@@ -25,6 +27,7 @@ services:
 
   private_github_crawler:
     container_name: private_github_crawler
+    hostname: private_github_crawler
     image: private_github_crawler
     build:
       context: ../services/private_github_crawler
@@ -32,9 +35,13 @@ services:
         PYPI_SERVER_SCHEME:
         PYPI_SERVER_HOST:
         PYPI_SERVER_PORT:
+    environment:
+      CRAWLER_USERNAME:
+      CRAWLER_PASSWORD:
 
   public_github_crawler:
     container_name: public_github_crawler
+    hostname: public_github_crawler
     image: public_github_crawler
     build:
       context: ../services/public_github_crawler
@@ -42,9 +49,13 @@ services:
         PYPI_SERVER_SCHEME:
         PYPI_SERVER_HOST:
         PYPI_SERVER_PORT:
+    environment:
+      CRAWLER_USERNAME:
+      CRAWLER_PASSWORD:
 
   default_queue:
     container_name: default_queue
+    hostname: default_queue
     image: default_queue
     build:
       context: ../services/default_queue

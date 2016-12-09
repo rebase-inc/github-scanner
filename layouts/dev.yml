@@ -27,47 +27,9 @@ services:
       service: public_github_crawler
     environment:
       LOG_LEVEL: "DEBUG"
-
-    # rq_default:
-    #   image: rebase/dev-rq-default
-    #   extends:
-    #     service: webserver
-    #     file: web-service-dev.yml
-    #   environment:
-    #     SETTINGS: ".rq_default.config"
-    #     CRAWLER_USERNAME:
-    #     CRAWLER_PASSWORD:
-    #     ONLY_THIS_REPO:
-    #     # make sure the following number matches the tmpfs size
-    #     REPOS_VOLUME_SIZE_IN_MB: 500
-    #     # if REPOS_VOLUME_SIZE_IN_MB is less than 10MB, factor should be 10
-    #     # if REPOS_VOLUME_SIZE_IN_MB is less than 100MB, factor should be 3
-    #     # if REPOS_VOLUME_SIZE_IN_MB is less than 1000MB, factor should be 2
-    #     CLONE_SIZE_SAFETY_FACTOR: 2
-    #   tmpfs:
-    #    - /repos:rw,noexec,size=500m
-
-#     github_public_crawling:
-#         extends: rq_default
-#         environment:
-#             SETTINGS: ".github_public_crawling.config"
-
-    # rq_population:
-    #   image: rebase/dev-rq-population
-    #   extends:
-    #     service: webserver
-    #     file: web-service-dev.yml
-    #   environment:
-    #     SETTINGS: ".population.dev"
-
-#     jupyter:
-#       image: rebase/jupyter
-#       extends:
-#         service: webserver
-#         file: web-service-dev.yml
-#       ports:
-#        - "8888:8888"
-
-#     redis:
-#       image: redis
-#       restart: always
+  population_analyzer:
+    extends:
+      file: common.yml
+      service: population_analyzer
+    environment:
+      LOG_LEVEL: "DEBUG"

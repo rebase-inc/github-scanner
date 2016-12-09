@@ -14,5 +14,5 @@ export PYPI_SERVER_PORT=${PYPI_SERVER_PORT:-$(prompt "PyPI server scheme" "8080"
 type=${BASH_ARGV[0]:-dev}
 
 echo -e "${RED}Building ${type} environment...${NC}"
-docker-compose -f "layouts/${type}.yml" build --no-cache 
+docker-compose -f "layouts/${type}.yml" build
 docker-compose -f "layouts/${type}.yml" up -d 
