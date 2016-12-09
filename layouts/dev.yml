@@ -15,6 +15,18 @@ services:
       service: default_queue
     environment:
       LOG_LEVEL: "DEBUG"
+  private_github_crawler:
+    extends:
+      file: common.yml
+      service: private_github_crawler
+    environment:
+      LOG_LEVEL: "DEBUG"
+  public_github_crawler:
+    extends:
+      file: common.yml
+      service: public_github_crawler
+    environment:
+      LOG_LEVEL: "DEBUG"
 
     # rq_default:
     #   image: rebase/dev-rq-default
