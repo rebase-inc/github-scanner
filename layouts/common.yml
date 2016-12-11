@@ -38,6 +38,10 @@ services:
     environment:
       CRAWLER_USERNAME:
       CRAWLER_PASSWORD:
+      REPOS_VOLUME_SIZE_IN_MB: 500
+      CLONE_SIZE_SAFETY_FACTOR: 2
+    tmpfs:
+     - /repos:rw,noexec,size=500m
 
   public_github_crawler:
     container_name: public_github_crawler

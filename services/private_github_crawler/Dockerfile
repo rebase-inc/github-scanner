@@ -24,4 +24,5 @@ RUN source /venv/bin/activate && \
         --extra-index-url ${PYPI_SERVER_SCHEME}${PYPI_SERVER_HOST}:${PYPI_SERVER_PORT} \
         --requirement /requirements.txt
 
+ENV PYTHONPATH /src
 CMD ["/venv/bin/python", "-m", "run"]

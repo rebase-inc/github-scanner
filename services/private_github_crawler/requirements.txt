@@ -1,4 +1,6 @@
-pip==9.0.1
+gitpython
+pip
+PyGithub
 redis
 rq
 rsyslog

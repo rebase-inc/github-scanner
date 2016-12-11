@@ -19,6 +19,8 @@ services:
     extends:
       file: common.yml
       service: private_github_crawler
+    volumes:
+      - ../services/private_github_crawler/src:/src
     environment:
       LOG_LEVEL: "DEBUG"
   public_github_crawler:
