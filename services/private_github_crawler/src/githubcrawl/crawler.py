@@ -1,14 +1,14 @@
 import os
 import git
 import shutil
-import rsyslog
 import logging
 
+import magic
+import rsyslog
 from github import GithubException
 
 from .api import RateLimitAwareGithubAPI
 
-rsyslog.setup()
 LOGGER = logging.getLogger()
 CLONE_RAM_DIR = '/repos'
 CLONE_FS_DIR = '/big_repos'
@@ -65,13 +65,21 @@ class GithubCommitCrawler(object):
         for diff in commit.parents[0].diff(commit, create_patch = True):
             if diff.deleted_file or diff.renamed:
                 continue
-            elif diff.new_file:
-                LOGGER.debug('We are reading some data for a new file: {}...'.format(commit.tree[diff.b_path].data_stream.read().decode()[:10]))
-            else:
-                LOGGER.debug('We are reading some data for a diff: {}... {}...'.format(
-                    commit.tree[diff.b_path].data_stream.read().decode()[:10],
-                    commit.parents[0].tree[diff.a_path].data_stream.read().decode()[:10],
-                    ))
+            try:
+                old_content = self.decode_blob('' if diff.new_file else commit.parents[0].tree[diff.a_path].data_stream.read())
+                new_content = self.decode_blob(commit.tree[diff.b_path].data_stream.read())
+                LOGGER.debug('DATA {}:{}'.format(old_content[0:20], new_content[0:20]))
+            except ValueError as exc:
+                LOGGER.exception('Unreadable diff: {}'.format(str(exc)))
+
+
+    # TODO: Maybe remove this from the class
+    def decode_blob(self, blob):
+        encoding = magic.Magic(mime_encoding = True).from_buffer(blob)
+        if encoding == 'binary':
+            LOGGER.debug('Skipping blob due to binary encoding!')
+            return ''
+        return blob.decode(encoding)
 
     def clone(self, repo):
         url = repo.clone_url.replace('https://github.com', self.oauth_clone_prefix, 1)

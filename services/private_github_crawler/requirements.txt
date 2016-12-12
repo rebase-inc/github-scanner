@@ -1,6 +1,7 @@
 gitpython
 pip
 PyGithub
+python-magic
 redis
 rq
 rsyslog

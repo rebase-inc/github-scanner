@@ -9,6 +9,7 @@ RUN apk update && \
         --no-cache \
         git \
         libpq \
+        libmagic \
         py-virtualenv \
         python3 && \
     pyvenv /venv && \

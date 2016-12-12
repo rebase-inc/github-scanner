@@ -6,20 +6,20 @@ from github import Github, GithubException
 from github.Requester import Requester
 from github.MainClass import DEFAULT_BASE_URL, DEFAULT_TIMEOUT, DEFAULT_PER_PAGE
 
-rsyslog.setup()
 LOGGER = logging.getLogger()
 
 class RateLimitAwareGithubAPI(Github):
 
-    def __init__(self, login_or_token=None, password=None, base_url=DEFAULT_BASE_URL, 
-            timeout=DEFAULT_TIMEOUT, client_id=None, client_secret=None, user_agent='PyGithub/Python', 
+    def __init__(self, login_or_token=None, password=None, base_url=DEFAULT_BASE_URL,
+            timeout=DEFAULT_TIMEOUT, client_id=None, client_secret=None, user_agent='PyGithub/Python',
             per_page=DEFAULT_PER_PAGE, api_preview=False):
-        super().__init__(login_or_token=login_or_token, password=password, base_url=base_url, 
-            timeout=timeout, client_id=client_id, client_secret=client_secret, user_agent=user_agent, 
+        super().__init__(login_or_token=login_or_token, password=password, base_url=base_url,
+            timeout=timeout, client_id=client_id, client_secret=client_secret, user_agent=user_agent,
             per_page=per_page, api_preview=api_preview)
-        self.__requester = RetryingRequester(login_or_token=login_or_token, password=password, base_url=base_url, 
-            timeout=timeout, client_id=client_id, client_secret=client_secret, user_agent=user_agent, 
+        self._Github__requester = RetryingRequester(login_or_token=login_or_token, password=password, base_url=base_url,
+            timeout=timeout, client_id=client_id, client_secret=client_secret, user_agent=user_agent,
             per_page=per_page, api_preview=api_preview)
+        self.__Github__log = lambda s, v, u, r, i, ss, rr, o: ''
 
 class RetryingRequester(Requester):
     def __init__(self, max_retries = 3, min_delay = 0.75, *args, **kwargs):
@@ -45,10 +45,9 @@ class RetryingRequester(Requester):
         elif seconds_since_last_request < self.min_delay:
             LOGGER.debug('Minimum request delay of {} seconds not reached - sleeping for {} seconds'.format(self.min_delay, self.min_delay - seconds_since_last_request))
             time.sleep(self.min_delay - seconds_since_last_request)
-        
+
         try:
             self.last_request_time = datetime.utcnow()
-            LOGGER.debug("ACTUALLY DOING A REQUEST!")
             return super().__requestEncode(*args, **kwargs)
         except GithubException.RateLimitExceededException:
             self.consecutive_failed_attempts += 1
