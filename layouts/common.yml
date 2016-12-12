@@ -11,6 +11,7 @@ services:
       - "4444:4444"
   redis:
     container_name: redis
+    hostname: redis
     image: redis
     restart: always
 
