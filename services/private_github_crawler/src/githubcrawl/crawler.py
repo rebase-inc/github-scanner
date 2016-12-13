@@ -3,7 +3,6 @@ import git
 import shutil
 import logging
 
-import magic
 import rsyslog
 from github import GithubException
 
@@ -13,10 +12,14 @@ LOGGER = logging.getLogger()
 CLONE_RAM_DIR = '/repos'
 CLONE_FS_DIR = '/big_repos'
 
+def _log_diff(old, new):
+    LOGGER.debug('{}:{}'.format(old.strip()[:20], new.strip()[:20]))
+
 class GithubCommitCrawler(object):
-    def __init__(self, access_token):
+    def __init__(self, access_token, callback = _log_diff):
         self.api = RateLimitAwareGithubAPI(login_or_token = access_token)
         self.oauth_clone_prefix = 'https://{access_token}@github.com'.format(access_token = access_token)
+        self.callback = callback
 
         # TODO: Remove environment variable dependency
         self._in_memory_clone_limit = 1024 * int(os.environ['REPOS_VOLUME_SIZE_IN_MB']) / int(os.environ['CLONE_SIZE_SAFETY_FACTOR'])
@@ -27,7 +30,7 @@ class GithubCommitCrawler(object):
         for repo in user.get_repos():
             try:
                 if skip(repo):
-                    LOGGER.debug('Skipping repository "{}"'.format(repo))
+                    LOGGER.debug('Skipping repository "{}"'.format(repo.full_name))
                 else:
                     repos_to_crawl.append(repo)
             except GithubException as e:
@@ -59,27 +62,20 @@ class GithubCommitCrawler(object):
 
     def analyze_initial_commit(self, commit):
         for blob in commit.tree.traverse(predicate = lambda item, depth: item.type == 'blob'):
-            LOGGER.debug('We are reading some data from an initial commit: {}...'.format(blob.data_stream.read().decode()[:10]))
-
-    def analyze_regular_commit(self, commit):
-        for diff in commit.parents[0].diff(commit, create_patch = True):
-            if diff.deleted_file or diff.renamed:
-                continue
             try:
-                old_content = self.decode_blob('' if diff.new_file else commit.parents[0].tree[diff.a_path].data_stream.read())
-                new_content = self.decode_blob(commit.tree[diff.b_path].data_stream.read())
-                LOGGER.debug('DATA {}:{}'.format(old_content[0:20], new_content[0:20]))
+                self.callback(commit.authored_datetime, None, None, commit.tree, blob.path)
             except ValueError as exc:
                 LOGGER.exception('Unreadable diff: {}'.format(str(exc)))
 
 
-    # TODO: Maybe remove this from the class
-    def decode_blob(self, blob):
-        encoding = magic.Magic(mime_encoding = True).from_buffer(blob)
-        if encoding == 'binary':
-            LOGGER.debug('Skipping blob due to binary encoding!')
-            return ''
-        return blob.decode(encoding)
+    def analyze_regular_commit(self, commit):
+        for diff in commit.parents[0].diff(commit, create_patch = True):
+            try:
+                old_path = diff.a_path if not diff.new_file else None
+                old_tree = commit.parents[0].tree if not diff.new_file else None
+                self.callback(commit.authored_datetime, old_tree, old_path, commit.tree, diff.b_path)
+            except ValueError as exc:
+                LOGGER.exception('Unreadable diff: {}'.format(str(exc)))
 
     def clone(self, repo):
         url = repo.clone_url.replace('https://github.com', self.oauth_clone_prefix, 1)

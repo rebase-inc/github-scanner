@@ -1,4 +1,5 @@
 gitpython
+stdlib-list
 pip
 PyGithub
 python-magic

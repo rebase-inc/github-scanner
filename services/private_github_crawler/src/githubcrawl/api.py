@@ -36,7 +36,7 @@ class RetryingRequester(Requester):
         # to wait by setting this variable
         self.wait_until = None
 
-    def __requestEncode(self, *args, **kwargs):
+    def _Github__requestEncode(self, *args, **kwargs):
         seconds_since_last_request = (datetime.now() - (self.last_request_time or 0)).total_seconds()
         if self.consecutive_failed_attempts >= self.max_retries:
             raise GithubRateLimitMaxRetries(*args[0:3])

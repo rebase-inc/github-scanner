@@ -1,1 +1,1 @@
-from .crawl import crawl
+from .crawler import GithubCommitCrawler

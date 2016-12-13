@@ -22,7 +22,7 @@ services:
     volumes:
       - ../services/private_github_crawler/src:/src
     environment:
-      LOG_LEVEL: "DEBUG"
+      LOG_LEVEL: "INFO"
   public_github_crawler:
     extends:
       file: common.yml
