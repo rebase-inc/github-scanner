@@ -1,50 +1,71 @@
+import re
 import logging
+import mimetypes
 
-from calendar import timegm
-from datetime import datetime
-from collections import defaultdict
+from githubcrawler import GithubCommitCrawler
 
-from githubcrawl import GithubCommitCrawler
-from codeparse import parse_python, MissingPathInTree, NotDecodableError
+from .language import PythonKnowledge
 
 LOGGER = logging.getLogger()
 
-class UserProfile(object):
+class DeveloperProfile(object):
     def __init__(self):
-        self.private_library_uses = defaultdict(list)
-        self.standard_library_uses = defaultdict(list)
-        self.third_party_library_uses = defaultdict(list)
+        self.languages = {}
+        self.languages[PythonKnowledge.NAME] = PythonKnowledge()
 
-    def add_data_from_diff(self, commit_datetime, previous_tree, previous_path, current_tree, current_path):
-        try:
-            commit_datetime = timegm(commit_datetime.utctimetuple())
+        self.mimetypes = mimetypes.MimeTypes(strict = False)
+        self.mimetypes.types_map[0]['.jsx'] = self.mimetypes.types_map[1]['.js']
+        self.mimetype_regex = re.compile('(?:application|text)\/(?:(?:x-)?)(?P<language>[a-z]+)')
 
-            use_types_history = [ self.private_library_uses, self.standard_library_uses, self.third_party_library_uses ]
-            use_types_before_commit = parse_python(previous_tree, previous_path)
-            use_types_after_commit = parse_python(current_tree, current_path)
+    def serialize_results():
+        for languages in self.languages:
+            language.parser.close()
+        return 'some shit'
 
-            for history, before_commit, after_commit in zip(use_types_history, use_types_before_commit, use_types_after_commit):
-                for reference in (before_commit | after_commit):
-                    history[reference] += [ commit_datetime for _ in range(abs(before_commit[reference] - after_commit[reference])) ]
+    def guess_language(self, path):
+        # For now, this returns a set with zero or one elements.
+        # However, we may in the future support languages that can
+        # Be parsed by multiple intepreters, so this returns a set
+        mimetype, encoding = self.mimetypes.guess_type(path)
+        if not mimetype:
+            LOGGER.debug('Unrecognized file type at {}'.format(path))
+            return set()
+        else:
+            match = self.mimetype_regex.match(mimetype)
+            if not match:
+                LOGGER.debug('Unrecognized mimetype of path {}'.format(path))
+                return set()
+            return set([ match.group('language') ])
 
-        except SyntaxError:
-            pass
-        except NotDecodableError:
-            pass
-        except MissingPathInTree:
-            pass
+    def analyze_commit(self, commit):
+        if len(commit.parents) == 0:
+            return self.analyze_initial_commit(commit)
+        elif len(commit.parents) == 1:
+            return self.analyze_regular_commit(commit)
+        else:
+            return self.analyze_merge_commit(commit)
 
+    def analyze_regular_commit(self, commit):
+        for diff in commit.parents[0].diff(commit, create_patch = True):
+            for language in self.guess_language(diff.a_path if diff.deleted_file else diff.b_path):
+                if language not in self.languages:
+                    LOGGER.debug('Skipping parsing {} in {} due to missing language support'.format(diff.b_path, language))
+                    continue
+                self.languages[language].analyze_diff(diff, commit)
+
+    def analyze_initial_commit(self, commit):
+        for blob in commit.tree.traverse(predicate = lambda item, depth: item.type == 'blob'):
+            for language in self.guess_language(blob.path):
+                if language not in self.languages:
+                    LOGGER.debug('Skipping parsing {} in {} due to missing language support'.format(blob.path, language))
+                    continue
+                self.languages[language].analyze_blob(blob, commit)
+
+    def analyze_merge_commit(self, commit):
+        LOGGER.debug('Skipping merge commit')
 
 def scan_all(access_token):
-    user = UserProfile()
-    crawler = GithubCommitCrawler(access_token, callback = user.add_data_from_diff)
-    crawler.crawl_all_repos(skip = lambda repo: repo.name != 'veb')
-    for private_library, dates in user.private_library_uses.items():
-        for date in dates:
-            LOGGER.info('Used {} on {}'.format(private_library, date))
-    for standard_library, dates in user.standard_library_uses.items():
-        for date in dates:
-            LOGGER.info('Used {} on {}'.format(standard_library, date))
-    for third_party_library, dates in user.third_party_library_uses.items():
-        for date in dates:
-            LOGGER.info('Used {} on {}'.format(third_party_library, date))
+    user = DeveloperProfile()
+    crawler = GithubCommitCrawler(access_token, callback = user.analyze_commit)
+    crawler.crawl_all_repos(skip = lambda repo: False)
+    return
