@@ -1,3 +1,5 @@
+botocore
+boto3
 rsyslog
 githubcrawler
 knowledgemodel
