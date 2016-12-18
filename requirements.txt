@@ -1,5 +1,7 @@
 botocore
 boto3
+rq
+redis
 rsyslog
 githubcrawler
 knowledgemodel
