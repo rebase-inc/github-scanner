@@ -35,8 +35,8 @@ def scan_all(access_token, skill_set_id):
     except botocore.exceptions.ClientError as e:
         LOGGER.error('Couldnt delete object, response: {}'.format(str(e.response)))
 
-    knowledge = json.dumps(user.get_computed_knowledge())
-    keyspace.put(Body=pickle.dumps(knowledge))
+    knowledge = user.get_computed_knowledge()
+    keyspace.put(Body=json.dumps(knowledge))
 
 def skip_predicate(repo):
     if 'ONLY_THIS_REPO' in os.environ:
