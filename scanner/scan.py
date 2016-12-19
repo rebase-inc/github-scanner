@@ -1,5 +1,6 @@
 import re
 import os
+import json
 import pickle
 import rsyslog
 import logging
@@ -14,8 +15,8 @@ from knowledgemodel import DeveloperProfile
 LOGGER = logging.getLogger()
 S3_CONFIG = {
         'region_name': 'us-east-1',
-        'aws_access_key_id': os.environ['BACKEND_AWS_ACCESS_KEY_ID'],
-        'aws_secret_access_key': os.environ['BACKEND_AWS_SECRET_ACCESS_KEY'],
+        'aws_access_key_id': os.environ['AWS_ACCESS_KEY_ID'],
+        'aws_secret_access_key': os.environ['AWS_SECRET_ACCESS_KEY'],
         }
 SKILL_DATA_S3_BUCKET = os.environ['SKILL_DATA_S3_BUCKET']
 SMALL_REPO_DIR = os.environ['SMALL_REPO_DIR']
@@ -33,9 +34,9 @@ def scan_all(access_token, skill_set_id):
         keyspace.delete()
     except botocore.exceptions.ClientError as e:
         LOGGER.error('Couldnt delete object, response: {}'.format(str(e.response)))
-    LOGGER.debug(user.get_computed_knowledge())
-    keyspace.put(Body=pickle.dumps(user.get_computed_knowledge()))
 
+    knowledge = json.dumps(user.get_computed_knowledge())
+    keyspace.put(Body=pickle.dumps(knowledge))
 
 def skip_predicate(repo):
     if 'ONLY_THIS_REPO' in os.environ:
