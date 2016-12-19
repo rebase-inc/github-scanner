@@ -5,4 +5,3 @@ redis
 rsyslog
 githubcrawler
 knowledgemodel
-psycopg2
