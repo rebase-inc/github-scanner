@@ -6,7 +6,7 @@ from multiprocessing import current_process
 from redis import StrictRedis
 from rq import Worker, Queue, Connection
 
-rsyslog.setup()
+rsyslog.setup(log_level = environ['LOG_LEVEL'])
 LOGGER = logging.getLogger(__name__)
 current_process().name = environ['HOSTNAME']
 

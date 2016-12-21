@@ -3,5 +3,6 @@ boto3
 rq
 redis
 rsyslog
+psycopg2
 githubcrawler
 knowledgemodel
