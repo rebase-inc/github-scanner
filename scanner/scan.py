@@ -20,47 +20,39 @@ LOGGER = logging.getLogger()
 logging.getLogger('boto3').setLevel(logging.WARNING)
 logging.getLogger('botocore').setLevel(logging.WARNING)
 S3_CONFIG = {
-        'region_name': 'us-east-1',
+        'region_name': os.environ['AWS_REGION'],
         'aws_access_key_id': os.environ['AWS_ACCESS_KEY_ID'],
         'aws_secret_access_key': os.environ['AWS_SECRET_ACCESS_KEY'],
         }
-SMALL_REPO_DIR = os.environ['SMALL_REPO_DIR']
-LARGE_REPO_DIR = os.environ['LARGE_REPO_DIR']
-REPO_CUTOFF_SIZE = int(os.environ['SMALL_REPO_DIR_SIZE']) / int(os.environ['SMALL_REPO_SAFETY_FACTOR'])
-KNOWLEDGE_KEYSPACE = os.environ['S3_KNOWLEDGE_KEYSPACE']
-KNOWLEDGE_BUCKET = os.environ['S3_KNOWLEDGE_BUCKET']
 
+TMPFS_DRIVE = os.environ['TMPFS_DRIVE']
+LARGE_DRIVE = os.environ['LARGE_DRIVE']
+TMPFS_MAX_WRITE = int(os.environ['TMPFS_DRIVE_MAX_WRITE'])
+BUCKET = os.environ['S3_BUCKET']
+LEADERBOARD_PREFIX = os.environ['S3_LEADERBOARD_PREFIX']
+USER_PREFIX = os.environ['S3_USER_PREFIX']
 
 def scan_all_repos(access_token, skill_set_id):
     user = DeveloperProfile()
-    crawler = GithubCommitCrawler(access_token, user.analyze_commit, SMALL_REPO_DIR, LARGE_REPO_DIR, REPO_CUTOFF_SIZE)
+    crawler = GithubCommitCrawler(access_token, user.analyze_commit, TMPFS_DRIVE, LARGE_DRIVE, TMPFS_MAX_WRITE)
     github_id = crawler.api.get_user().login
     crawler.crawl_all_repos(skip = lambda repo: repo.name != 'skillgraph')
-    bucket = boto3.resource('s3', **S3_CONFIG).Bucket(KNOWLEDGE_BUCKET)
+    bucket = boto3.resource('s3', **S3_CONFIG).Bucket(BUCKET)
+    def _compute_knowledge(language, module, dates):
+        ''' yeah, this is less than perfect...Should try to find a way to not pass around that knowledge_activation func '''
+        return compute_knowledge(bucket, language, module, github_id, dates, user.knowledge_activation)
 
-    def _compute_and_set_ranking(language, module, dates):
-        return set_ranking(bucket, language, module, crawler.api.get_user().login, dates, user.knowledge_activation)
+    knowledge = user.compute_knowledge(_compute_knowledge)
+    bucket.Object('{}/{}'.format(USER_PREFIX, github_id)).put(Body = json.dumps(knowledge))
 
-    rankings = user.compute_rankings(_compute_and_set_ranking)
-    LOGGER.info('Computed rankings for {} modules'.format(count))
-    write_rankings_to_db(skill_set_id, rankings)
-
-def set_ranking(bucket, language, module, github_id, dates, knowledge_activation_function):
-    knowledge_keyspace = KNOWLEDGE_KEYSPACE.format(language = language, module = module)
-
-    for knowledge_object in bucket.objects.filter(Prefix = knowledge_keyspace + github_id):
-        knowledge_object.delete()
-
+def compute_knowledge(bucket, language, module, github_id, dates, knowledge_activation_function):
     knowledge = functools.reduce(lambda prev, curr: prev + knowledge_activation_function(curr), dates, 0.0)
+    key = '{}/{}/{}/{}'.format(LEADERBOARD_PREFIX, language, module, github_id)
 
-    knowledge_object = bucket.Object(key = knowledge_keyspace + github_id + ':{:.2f}'.format(knowledge))
-    etag = knowledge_object.put(Body = json.dumps(dates))['ETag']
-    #knowledge_object.wait_until_exists(IfMatch = etag)
+    map(lambda obj: obj.delete(), bucket.objects.filter(Prefix = key))
+    bucket.Object(key = '{}:{:.2f}'.format(key, knowledge)).put(Body = bytes('', 'utf-8'))
 
-    all_users = []
-    for user_knowledge in bucket.objects.filter(Prefix = knowledge_keyspace):
-        all_users.append(float(re.match('.*\:([0-9,.]+)', user_knowledge.key).group(1)))
-    return bisect.bisect_left(all_users, knowledge) / len(all_users)
+    return knowledge
 
 def write_rankings_to_db(skill_set_id, rankings):
     try:
