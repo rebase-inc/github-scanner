@@ -30,20 +30,23 @@ def scan_all_repos(access_token, block_until_consistent = True):
     user = DeveloperProfile()
     crawler = GithubCommitCrawler(access_token, user.analyze_commit, TMPFS_DRIVE, LARGE_DRIVE, TMPFS_MAX_WRITE)
     github_id = crawler.api.get_user().login
-    crawler.crawl_all_repos(skip = lambda repo: repo.name != 'skillgraph')
+    LOGGER.info('Scanning all repositories for github user {}'.format(github_id))
+    crawler.crawl_all_repos()
     bucket = boto3.resource('s3', **S3_CONFIG).Bucket(BUCKET)
-    def _compute_knowledge(language, module, dates):
-        ''' yeah, this is less than perfect...Should try to find a way to not pass around that knowledge_activation func '''
-        return compute_knowledge(bucket, language, module, github_id, dates, user.knowledge_activation)
 
-    knowledge = user.compute_knowledge(_compute_knowledge)
     knowledge_object = bucket.Object('{}/{}'.format(USER_PREFIX, github_id))
     etag = knowledge_object.put(Body = json.dumps(knowledge))['ETag']
 
-    if block_until_consistent:
-        knowledge_object.wait_until_exists(IfMatch = etag)
+    user.walk_knowledge(lambda lang, mod, know: write_knowlege_to_s3(bucket, github_id, lang, mod, know))
 
-def compute_knowledge(bucket, language, module, github_id, dates, knowledge_activation_function):
+    # TODO: Add check for all of the s3 written objects
+    if block_until_consistent:
+        start = time.time()
+        LOGGER.debug('Waiting until s3 objects exist...')
+        knowledge_object.wait_until_exists(IfMatch = etag)
+        LOGGER.debug('S3 object exists...Waited {} seconds'.format(time.time() - start))
+
+def write_knowledge_to_s3(bucket, github_id, language, module, knowledge):
     knowledge = functools.reduce(lambda prev, curr: prev + knowledge_activation_function(curr), dates, 0.0)
     key = '{}/{}/{}/{}'.format(LEADERBOARD_PREFIX, language, module, github_id)
 

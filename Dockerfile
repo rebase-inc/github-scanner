@@ -1,9 +1,5 @@
 FROM alpine
 
-ARG PYPI_SERVER_HOST
-ARG PYPI_SERVER_SCHEME
-ARG PYPI_SERVER_PORT
-
 RUN apk --quiet update && \
     apk --quiet add \
         --no-cache \
@@ -19,9 +15,12 @@ RUN apk --quiet update && \
     pyvenv /venv && \
     mkdir -p /big_repos
 
-COPY ./requirements.txt /
-COPY ./run.py /
 
+ARG PYPI_SERVER_HOST
+ARG PYPI_SERVER_SCHEME
+ARG PYPI_SERVER_PORT
+
+COPY ./requirements.txt /
 RUN source /venv/bin/activate && \
     pip install \
         --quiet \
@@ -31,4 +30,5 @@ RUN source /venv/bin/activate && \
         --requirement /requirements.txt
 
 ENV PYTHONPATH /pylibs
+COPY ./run.py /
 CMD ["/venv/bin/python", "-m", "run"]
