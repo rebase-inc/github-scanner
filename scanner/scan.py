@@ -1,4 +1,5 @@
 import os
+import time
 import json
 import rsyslog
 import logging
@@ -48,10 +49,6 @@ def scan_all_repos(access_token, block_until_consistent = True):
         LOGGER.debug('S3 object exists...Waited {} seconds'.format(time.time() - start))
 
 def write_knowledge_to_s3(bucket, github_id, language, module, knowledge):
-    knowledge = functools.reduce(lambda prev, curr: prev + knowledge_activation_function(curr), dates, 0.0)
     key = '{}/{}/{}/{}'.format(LEADERBOARD_PREFIX, language, module, github_id)
-
     map(lambda obj: obj.delete(), bucket.objects.filter(Prefix = key))
     bucket.Object(key = '{}:{:.2f}'.format(key, knowledge)).put(Body = bytes('', 'utf-8'))
-
-    return knowledge
