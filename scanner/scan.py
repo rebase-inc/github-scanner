@@ -34,6 +34,7 @@ def scan_all_repos(access_token, block_until_consistent = True):
     crawler.crawl_all_repos()
     bucket = boto3.resource('s3', **S3_CONFIG).Bucket(BUCKET)
 
+    knowledge = user.compute_knowledge()
     knowledge_object = bucket.Object('{}/{}'.format(USER_PREFIX, github_id))
     etag = knowledge_object.put(Body = json.dumps(knowledge))['ETag']
 
