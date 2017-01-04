@@ -38,7 +38,7 @@ def scan_all_repos(access_token, block_until_consistent = True):
     knowledge_object = bucket.Object('{}/{}'.format(USER_PREFIX, github_id))
     etag = knowledge_object.put(Body = json.dumps(knowledge))['ETag']
 
-    user.walk_knowledge(lambda lang, mod, know: write_knowlege_to_s3(bucket, github_id, lang, mod, know))
+    user.walk_knowledge(lambda lang, mod, know: write_knowledge_to_s3(bucket, github_id, lang, mod, know))
 
     # TODO: Add check for all of the s3 written objects
     if block_until_consistent:
