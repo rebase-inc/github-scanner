@@ -18,10 +18,10 @@ CRAWLER_CONFIG = {
         'tmpfs_cutoff': int(os.environ['TMPFS_DRIVE_MAX_WRITE']),
         }
 
-def scan_all_repos(access_token):
+def scan_all_repos(access_token, github_id: str = None):
     knowledge = KnowledgeModel()
     parser = CodeParser(callback = knowledge.add_reference)
-    crawler = GithubCommitCrawler(callback = parser.analyze_code, access_token = access_token, config = CRAWLER_CONFIG)
+    crawler = GithubCommitCrawler(callback = parser.analyze_code, access_token = access_token, config = CRAWLER_CONFIG, username = github_id)
 
     LOGGER.info('Scanning all repositories for github user {}'.format(crawler.user.login))
     crawler.crawl_all_repos()
