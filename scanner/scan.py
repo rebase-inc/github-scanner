@@ -23,6 +23,6 @@ def scan_all_repos(access_token, github_id: str = None):
     parser = CodeParser(callback = knowledge.add_reference)
     crawler = GithubCommitCrawler(callback = parser.analyze_code, access_token = access_token, config = CRAWLER_CONFIG, username = github_id)
 
-    LOGGER.info('Scanning all repositories for github user {}'.format(crawler.user.login))
     crawler.crawl_all_repos()
     knowledge.write_to_s3(crawler.user.login, S3BUCKET, S3_CONFIG)
+    LOGGER.info('Scan summary for user {}: {}'.format(crawler.user.login, parser.health))
