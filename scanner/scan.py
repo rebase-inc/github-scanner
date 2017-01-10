@@ -28,7 +28,3 @@ def scan_all_repos(access_token, github_id: str = None):
     knowledge.write_to_s3(crawler.user.login, S3BUCKET, S3_CONFIG)
     LOGGER.info('Scan summary for user {}: {}'.format(crawler.user.login, parser.health))
     return knowledge.simple_projection
-
-# Added for clarity's sake
-def delete_github_access_token(username, password, token):
-    delete_github_access_token(username, password, token)
