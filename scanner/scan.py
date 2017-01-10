@@ -4,6 +4,7 @@ import logging
 from githubcrawler import GithubCommitCrawler
 from knowledgemodel import KnowledgeModel
 from codeparser import CodeParser
+from authgen import delete_github_access_token
 
 LOGGER = logging.getLogger()
 S3BUCKET = os.environ['S3_BUCKET']
@@ -26,3 +27,8 @@ def scan_all_repos(access_token, github_id: str = None):
     crawler.crawl_all_repos()
     knowledge.write_to_s3(crawler.user.login, S3BUCKET, S3_CONFIG)
     LOGGER.info('Scan summary for user {}: {}'.format(crawler.user.login, parser.health))
+    return knowledge.simple_projection
+
+# Added for clarity's sake
+def delete_github_access_token(username, password, token):
+    delete_github_access_token(username, password, token)
