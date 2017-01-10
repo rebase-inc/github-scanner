@@ -22,6 +22,7 @@ ARG PYTHON_COMMONS_PORT
 
 COPY ./requirements.txt /
 RUN source /venv/bin/activate && \
+    pip install --upgrade pip && \
     pip install \
         --quiet \
         --no-cache-dir \

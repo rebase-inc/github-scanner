@@ -1,6 +1,8 @@
 import os
 import logging
 
+from rq import get_current_job
+
 from githubcrawler import GithubCommitCrawler
 from knowledgemodel import KnowledgeModel
 from codeparser import CodeParser
@@ -19,11 +21,22 @@ CRAWLER_CONFIG = {
         'tmpfs_cutoff': int(os.environ['TMPFS_DRIVE_MAX_WRITE']),
         }
 
-def scan_all_repos(access_token, github_id: str = None):
+def _report_progress(finished, remaining):
+    job = get_current_job()
+    job.meta['finished'] = [ str(thing) for thing in finished ] # make sure only strings go in here
+    job.meta['remaining'] = [ str(thing) for thing in remaining ]
+    job.save()
+
+def scan_all_repos(access_token: str, github_id: str = None):
     knowledge = KnowledgeModel()
     parser = CodeParser(callback = knowledge.add_reference)
-    crawler = GithubCommitCrawler(callback = parser.analyze_code, access_token = access_token, config = CRAWLER_CONFIG, username = github_id)
-
+    crawler = GithubCommitCrawler(
+        callback = parser.analyze_code,
+        access_token = access_token,
+        config = CRAWLER_CONFIG,
+        report_progress = _report_progress,
+        username = github_id
+        )
     crawler.crawl_all_repos()
     knowledge.write_to_s3(crawler.user.login, S3BUCKET, S3_CONFIG)
     LOGGER.info('Scan summary for user {}: {}'.format(crawler.user.login, parser.health))

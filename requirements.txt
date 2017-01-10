@@ -4,5 +4,6 @@ rq
 redis
 rsyslog
 psycopg2
+gitpython
 githubcrawler
 knowledgemodel
