@@ -1,5 +1,6 @@
 import os
 import logging
+from collections import Counter
 
 from rq import get_current_job
 
@@ -21,10 +22,12 @@ CRAWLER_CONFIG = {
         'tmpfs_cutoff': int(os.environ['TMPFS_DRIVE_MAX_WRITE']),
         }
 
-def _report_progress(finished, remaining):
+def _report_progress(scanned, total):
+    if not isinstance(scanned, Counter) or not isinstance(total, Counter):
+        raise Exception('Only collections.Counter objects can be supplied to report progress!')
     job = get_current_job()
-    job.meta['finished'] = [ str(thing) for thing in finished ] # make sure only strings go in here
-    job.meta['remaining'] = [ str(thing) for thing in remaining ]
+    job.meta['commits_scanned'] = scanned
+    job.meta['all_commits'] = total
     job.save()
 
 def scan_all_repos(access_token: str, github_id: str = None):
@@ -40,4 +43,4 @@ def scan_all_repos(access_token: str, github_id: str = None):
     crawler.crawl_all_repos()
     knowledge.write_to_s3(crawler.user.login, S3BUCKET, S3_CONFIG)
     LOGGER.info('Scan summary for user {}: {}'.format(crawler.user.login, parser.health))
-    return (knowledge.simple_projection, parser.health)
+    return (knowledge.simple_projection, parser.health.as_dict())
