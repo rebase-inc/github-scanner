@@ -30,7 +30,8 @@ def _report_progress(scanned, total):
     job.meta['all_commits'] = total
     job.save()
 
-def scan_all_repos(access_token: str, github_id: str = None):
+
+def make_crawler(access_token, github_login):
     knowledge = KnowledgeModel()
     parser = CodeParser(callback = knowledge.add_reference)
     crawler = GithubCommitCrawler(
@@ -38,9 +39,30 @@ def scan_all_repos(access_token: str, github_id: str = None):
         access_token = access_token,
         config = CRAWLER_CONFIG,
         report_progress = _report_progress,
-        username = github_id
+        username = github_login
         )
+    return knowledge, parser, crawler
+
+
+def scan_all_repos(access_token: str, github_login: str = None):
+    knowledge, parser, crawler = make_crawler(access_token, github_login)
     crawler.crawl_all_repos()
     knowledge.write_to_s3(crawler.user.login, S3BUCKET, S3_CONFIG)
     LOGGER.info('Scan summary for user {}: {}'.format(crawler.user.login, parser.health))
     return (knowledge.simple_projection, parser.health.as_dict())
+
+
+def scan_repo(access_token, github_login, repo_name, leave_clone=True):
+    knowledge, parser, crawler = make_crawler(access_token, github_login)
+    crawler.crawl_repo(repo_name, leave_clone=leave_clone)
+    LOGGER.info('Scan summary {}/{}: {}'.format(github_login, repo_name, parser.health))
+    return (knowledge.simple_projection, parser.health.as_dict())
+
+
+def scan_commit(access_token, github_login, repo_name, commit_sha, leave_clone=True):
+    knowledge, parser, crawler = make_crawler(access_token, github_login)
+    crawler.crawl_commit(repo_name, commit_sha, leave_clone)
+    LOGGER.info('Scan  {}/{}/{}: {}'.format(github_login, repo_name, commit_sha, parser.health))
+    return (knowledge.simple_projection, parser.health.as_dict())
+
+
