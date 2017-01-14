@@ -82,3 +82,17 @@ def scan_authorized_repos(access_token: str):
     crawler.crawl_public_repos(github_id, lambda repo_name, commit: progress.add_step(repo_name), lambda repo: _skip(repo, False), remote_only = True)
     crawler.crawl_public_repos(github_id, _callback, _skip)
     knowledge.write_to_s3(crawler.user.login, S3BUCKET, S3_CONFIG)
+
+
+def scan_repo(access_token, github_login, repo_name, leave_clone=True):
+    knowledge, parser, crawler = make_crawler(access_token, github_login)
+    crawler.crawl_repo(repo_name, leave_clone=leave_clone)
+    LOGGER.info('Scan summary {}/{}: {}'.format(github_login, repo_name, parser.health))
+    return (knowledge.simple_projection, parser.health.as_dict())
+
+
+def scan_commit(access_token, github_login, repo_name, commit_sha, leave_clone=True):
+    knowledge, parser, crawler = make_crawler(access_token, github_login)
+    crawler.crawl_commit(repo_name, commit_sha, leave_clone)
+    LOGGER.info('Scan  {}/{}/{}: {}'.format(github_login, repo_name, commit_sha, parser.health))
+    return (knowledge.simple_projection, parser.health.as_dict())

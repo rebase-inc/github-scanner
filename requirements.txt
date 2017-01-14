@@ -2,8 +2,11 @@ botocore
 boto3
 rq
 redis
-rsyslog
 psycopg2
 gitpython
+
+codeparser
+authgen
 githubcrawler
 knowledgemodel
+rsyslog
