@@ -71,10 +71,14 @@ class GithubCodeScanner(object):
 
     def scan_all(self):
         if self.github_id:
+            LOGGER.debug('Initializing progress...')
             self.crawler.crawl_public_repos(self.github_id, self.add_step, lambda repo: self.skip(repo, False), remote_only = True)
+            LOGGER.debug('Starting scan...')
             self.crawler.crawl_public_repos(self.github_id, self.callback, self.skip)
         else:
+            LOGGER.debug('Initializing progress...')
             self.crawler.crawl_authorized_repos(self.add_step, lambda repo: self.skip(repo, False), remote_only = True)
+            LOGGER.debug('Starting scan...')
             self.crawler.crawl_authorized_repos(self.callback, self.skip)
         self.knowledge.write_to_s3(self.github_id, S3BUCKET, S3_CONFIG)
 
