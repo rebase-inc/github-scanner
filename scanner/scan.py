@@ -46,53 +46,68 @@ class MeasuredJobProgress(object):
         self.job.meta[self.finished_key] = self.finished
         self.job.save()
 
-def scan_public_repos(github_id: str):
-    knowledge = KnowledgeModel()
-    parser = CodeParser(callback = knowledge.add_reference)
-    progress = MeasuredJobProgress()
 
-    def _skip(repo, log = True):
-        skip = not parser.supports_any_of(*repo.get_languages().keys())
+class GithubCodeScanner(object):
+
+    def __init__(self, token, github_id = None):
+        self.knowledge = KnowledgeModel()
+        self.parser = CodeParser(callback = self.knowledge.add_reference)
+        self.progress = MeasuredJobProgress()
+        self.crawler = GithubCommitCrawler(token, CLONE_CONFIG)
+        self.github_id = github_id
+
+    def skip(self, repo, log = True):
+        skip = not self.parser.supports_any_of(*repo.get_languages().keys())
         if skip and log:
             LOGGER.debug('Skipping repo {} because of missing language support'.format(repo.full_name))
         return skip
 
-    def _callback(repo_name, commit):
-        parser.analyze_commit(repo_name, commit)
-        progress.mark_finished(repo_name)
+    def callback(self, repo_name, commit):
+        self.parser.analyze_commit(repo_name, commit)
+        self.progress.mark_finished(repo_name)
 
+    def add_step(self, name, *args):
+        self.progress.add_step(name)
+
+    def scan_all(self):
+        if self.github_id:
+            self.crawler.crawl_public_repos(self.github_id, self.add_step, lambda repo: self.skip(repo, False), remote_only = True)
+            self.crawler.crawl_public_repos(self.github_id, self.callback, self.skip)
+        else:
+            self.crawler.crawl_authorized_repos(self.add_step, lambda repo: self.skip(repo, False), remote_only = True)
+            self.crawler.crawl_authorized_repos(self.callback, self.skip)
+        self.knowledge.write_to_s3(self.github_id, S3BUCKET, S3_CONFIG)
+
+    def scan_repo(self, name, cleanup = True):
+        if self.github_id:
+            self.crawler.crawl_individual_public_repo(self.github_id, name, self.callback, remote_only = True)
+            self.crawler.crawl_individual_public_repo(self.github_id, name, self.callback, cleanup = cleanup)
+        else:
+            self.crawler.crawl_individual_authorized_repo(name, self.callback, remote_only = True)
+            self.crawler.crawl_individual_authorized_repo(name, self.callback, cleanup = cleanup)
+
+    def scan_commit(self, repo_name, commit_sha, cleanup = True):
+        if self.github_id:
+            self.crawler.crawl_individual_public_commit(self.github_id, repo_name, commit_sha, self.callback, cleanup = cleanup)
+        else:
+            self.crawler.crawl_individual_authorized_commit(repo_name, commit_sha, self.callback, cleanup = cleanup)
+
+
+def scan_public_repos(github_id: str):
     with GithubToken(USERNAME, PASSWORD, note = github_id) as token:
-        crawler = GithubCommitCrawler(token, CLONE_CONFIG)
-        crawler.crawl_public_repos(github_id, lambda repo_name, commit: progress.add_step(repo_name), lambda repo: _skip(repo, False), remote_only = True)
-        crawler.crawl_public_repos(github_id, _callback, _skip)
-        knowledge.write_to_s3(github_id, S3BUCKET, S3_CONFIG)
+        scanner = GithubCodeScanner(token, github_id)
+        scanner.scan_all()
 
 def scan_authorized_repos(access_token: str):
-    knowledge = KnowledgeModel()
-    parser = CodeParser(callback = knowledge.add_reference)
-    progress = MeasuredJobProgress()
+    scanner = GithubCodeScanner(token)
+    scanner.scan_all()
 
-    def _skip(repo):
-        return not parser.supports_any_of(*repo.get_languages().keys())
-    def _callback(repo_name, commit):
-        parser.analyze_commit(repo_name, commit)
-        progress.mark_finished(repo_name)
+def scan_individual_public_repo(github_id, repo_name, cleanup=False):
+    with GithubToken(USERNAME, PASSWORD, note = github_id) as token:
+        scanner = GithubCodeScanner(token, github_id)
+        scanner.scan_repo(repo_name, cleanup)
 
-    crawler = GithubCommitCrawler(access_token, CLONE_CONFIG)
-    crawler.crawl_public_repos(github_id, lambda repo_name, commit: progress.add_step(repo_name), lambda repo: _skip(repo, False), remote_only = True)
-    crawler.crawl_public_repos(github_id, _callback, _skip)
-    knowledge.write_to_s3(crawler.user.login, S3BUCKET, S3_CONFIG)
-
-
-def scan_repo(access_token, github_login, repo_name, leave_clone=True):
-    knowledge, parser, crawler = make_crawler(access_token, github_login)
-    crawler.crawl_repo(repo_name, leave_clone=leave_clone)
-    LOGGER.info('Scan summary {}/{}: {}'.format(github_login, repo_name, parser.health))
-    return (knowledge.simple_projection, parser.health.as_dict())
-
-
-def scan_commit(access_token, github_login, repo_name, commit_sha, leave_clone=True):
-    knowledge, parser, crawler = make_crawler(access_token, github_login)
-    crawler.crawl_commit(repo_name, commit_sha, leave_clone)
-    LOGGER.info('Scan  {}/{}/{}: {}'.format(github_login, repo_name, commit_sha, parser.health))
-    return (knowledge.simple_projection, parser.health.as_dict())
+def scan_individual_public_commit(github_id, repo_name, commit_sha, cleanup=False):
+    with GithubToken(USERNAME, PASSWORD, note = github_id) as token:
+        scanner = GithubCodeScanner(token, github_id)
+        scanner.scan_commit(repo_name, commit_sha, cleanup)
