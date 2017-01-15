@@ -1,4 +1,5 @@
 import os
+import signal
 import logging
 from collections import Counter
 
@@ -49,12 +50,13 @@ class MeasuredJobProgress(object):
 
 class GithubCodeScanner(object):
 
-    def __init__(self, token, github_id = None):
+    def __init__(self, token, github_id = None, timeout = 360):
         self.knowledge = KnowledgeModel()
         self.parser = CodeParser(callback = self.knowledge.add_reference)
         self.progress = MeasuredJobProgress()
         self.crawler = GithubCommitCrawler(token, CLONE_CONFIG)
         self.github_id = github_id
+        self.timeout = timeout
 
     def skip(self, repo, log = True):
         skip = not self.parser.supports_any_of(*repo.get_languages().keys())
@@ -65,6 +67,7 @@ class GithubCodeScanner(object):
     def callback(self, repo_name, commit):
         self.parser.analyze_commit(repo_name, commit)
         self.progress.mark_finished(repo_name)
+        signal.alarm(self.timeout)
 
     def add_step(self, name, *args):
         self.progress.add_step(name)
