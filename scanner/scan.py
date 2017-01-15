@@ -51,10 +51,11 @@ class MeasuredJobProgress(object):
 class GithubCodeScanner(object):
 
     def __init__(self, token, github_id = None, timeout = 360):
+        clone_config = {**CLONE_CONFIG, **{'progress': self._rq_keepalive}}
         self.knowledge = KnowledgeModel()
         self.parser = CodeParser(callback = self.knowledge.add_reference)
         self.progress = MeasuredJobProgress()
-        self.crawler = GithubCommitCrawler(token, CLONE_CONFIG)
+        self.crawler = GithubCommitCrawler(token, clone_config)
         self.github_id = github_id
         self.timeout = timeout
 
@@ -67,10 +68,16 @@ class GithubCodeScanner(object):
     def callback(self, repo_name, commit):
         self.parser.analyze_commit(repo_name, commit)
         self.progress.mark_finished(repo_name)
-        signal.alarm(self.timeout)
+        self._rq_keepalive()
 
     def add_step(self, name, *args):
         self.progress.add_step(name)
+        self._rq_keepalive()
+
+    def _rq_keepalive(self, *args, **kwargs):
+        # has extra arguments so that we can pass it around more easily
+        # this takes less than one microsecond per call, so it's okay that we call it very often
+        signal.alarm(self.timeout)
 
     def scan_all(self):
         if self.github_id:
