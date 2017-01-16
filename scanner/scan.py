@@ -56,7 +56,8 @@ class GithubCodeScanner(object):
         self.parser = CodeParser(callback = self.knowledge.add_reference)
         self.progress = MeasuredJobProgress()
         self.crawler = GithubCommitCrawler(token, clone_config)
-        self.github_id = github_id
+        self.authorized = bool(github_id)
+        self.github_id = github_id or self.crawler.authorized_login
         self.timeout = timeout
 
     def skip(self, repo, log = True):
@@ -80,7 +81,7 @@ class GithubCodeScanner(object):
         signal.alarm(self.timeout)
 
     def scan_all(self):
-        if self.github_id:
+        if self.authorized:
             LOGGER.debug('Initializing progress...')
             self.crawler.crawl_public_repos(self.github_id, self.add_step, lambda repo: self.skip(repo, False), remote_only = True)
             LOGGER.debug('Starting scan...')
@@ -93,7 +94,7 @@ class GithubCodeScanner(object):
         self.knowledge.write_to_s3(self.github_id, S3BUCKET, S3_CONFIG)
 
     def scan_repo(self, name, cleanup = True):
-        if self.github_id:
+        if self.authorized:
             self.crawler.crawl_individual_public_repo(self.github_id, name, self.callback, remote_only = True)
             self.crawler.crawl_individual_public_repo(self.github_id, name, self.callback, cleanup = cleanup)
         else:
@@ -101,7 +102,7 @@ class GithubCodeScanner(object):
             self.crawler.crawl_individual_authorized_repo(name, self.callback, cleanup = cleanup)
 
     def scan_commit(self, repo_name, commit_sha, cleanup = True):
-        if self.github_id:
+        if self.authorized:
             self.crawler.crawl_individual_public_commit(self.github_id, repo_name, commit_sha, self.callback, cleanup = cleanup)
         else:
             self.crawler.crawl_individual_authorized_commit(repo_name, commit_sha, self.callback, cleanup = cleanup)
