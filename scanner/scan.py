@@ -113,7 +113,7 @@ def scan_public_repos(github_id: str):
         scanner.scan_all()
 
 def scan_authorized_repos(access_token: str):
-    scanner = GithubCodeScanner(token)
+    scanner = GithubCodeScanner(access_token)
     scanner.scan_all()
 
 def scan_individual_public_repo(github_id, repo_name, cleanup=False):
