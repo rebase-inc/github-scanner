@@ -80,8 +80,8 @@ class GithubCodeScanner(object):
         # this takes less than one microsecond per call, so it's okay that we call it very often
         signal.alarm(self.timeout)
 
-    def scan_all(self):
-        if self.knowledge.exists():
+    def scan_all(self, force_overwrite = False):
+        if self.knowledge.exists() and not force_overwrite:
             LOGGER.info('User "{}" scan is up to date. Skipping scan'.format(self.github_id))
             return
         elif self.authorized:
@@ -111,14 +111,14 @@ class GithubCodeScanner(object):
             self.crawler.crawl_individual_authorized_commit(repo_name, commit_sha, self.callback, cleanup = cleanup)
 
 
-def scan_public_repos(github_id: str):
+def scan_public_repos(github_id: str, force_overwrite = False):
     with GithubToken(USERNAME, PASSWORD, note = github_id) as token:
         scanner = GithubCodeScanner(token, github_id)
-        scanner.scan_all()
+        scanner.scan_all(force_overwrite = force_overwrite)
 
-def scan_authorized_repos(access_token: str):
+def scan_authorized_repos(access_token: str, force_overwrite = False):
     scanner = GithubCodeScanner(access_token)
-    scanner.scan_all()
+    scanner.scan_all(force_overwrite = force_overwrite)
 
 def scan_individual_public_repo(github_id, repo_name, cleanup=False):
     with GithubToken(USERNAME, PASSWORD, note = github_id) as token:
