@@ -1,3 +1,4 @@
+import signal
 import rsyslog
 import logging
 from os import environ
@@ -13,6 +14,9 @@ LOGGER = logging.getLogger()
 try:
     with Connection(StrictRedis(host = 'redis', port = 6379)):
         worker = Worker(environ['HOSTNAME'])
+        signal.signal(signal.SIGINT, worker.request_force_stop)
+        signal.signal(signal.SIGTERM, worker.request_force_stop)
         worker.work(logging_level = environ['LOG_LEVEL'])
+
 except Exception as exc:
     LOGGER.exception('Unhandled exception!')
