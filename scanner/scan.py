@@ -52,12 +52,12 @@ class GithubCodeScanner(object):
 
     def __init__(self, token, github_id = None, timeout = 360):
         clone_config = {**CLONE_CONFIG, **{'progress': self._rq_keepalive}}
-        self.knowledge = KnowledgeModel()
+        self.crawler = GithubCommitCrawler(token, clone_config)
+        self.github_id = github_id or self.crawler.authorized_login
+        self.knowledge = KnowledgeModel(self.github_id, S3BUCKET, S3_CONFIG)
         self.parser = CodeParser(callback = self.knowledge.add_reference)
         self.progress = MeasuredJobProgress()
-        self.crawler = GithubCommitCrawler(token, clone_config)
         self.authorized = bool(github_id)
-        self.github_id = github_id or self.crawler.authorized_login
         self.timeout = timeout
 
     def skip(self, repo, log = True):
@@ -81,7 +81,10 @@ class GithubCodeScanner(object):
         signal.alarm(self.timeout)
 
     def scan_all(self):
-        if self.authorized:
+        if self.knowledge.exists():
+            LOGGER.info('User "{}" scan is up to date. Skipping scan'.format(self.github_id))
+            return
+        elif self.authorized:
             LOGGER.debug('Initializing progress...')
             self.crawler.crawl_public_repos(self.github_id, self.add_step, lambda repo: self.skip(repo, False), remote_only = True)
             LOGGER.debug('Starting scan...')
@@ -91,7 +94,7 @@ class GithubCodeScanner(object):
             self.crawler.crawl_authorized_repos(self.add_step, lambda repo: self.skip(repo, False), remote_only = True)
             LOGGER.debug('Starting scan...')
             self.crawler.crawl_authorized_repos(self.callback, self.skip)
-        self.knowledge.write_to_s3(self.github_id, S3BUCKET, S3_CONFIG)
+        self.knowledge.save()
 
     def scan_repo(self, name, cleanup = True):
         if self.authorized:
