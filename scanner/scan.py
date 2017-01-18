@@ -116,7 +116,7 @@ def scan_public_repos(github_id: str, force_overwrite = False):
         scanner = GithubCodeScanner(token, github_id)
         scanner.scan_all(force_overwrite = force_overwrite)
 
-def scan_authorized_repos(access_token: str, force_overwrite = True):
+def scan_authorized_repos(access_token: str, force_overwrite = False):
     scanner = GithubCodeScanner(access_token)
     scanner.scan_all(force_overwrite = force_overwrite)
 
