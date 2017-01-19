@@ -11,11 +11,15 @@ current_process().name = environ['HOSTNAME']
 rsyslog.setup(log_level = environ['LOG_LEVEL'])
 LOGGER = logging.getLogger()
 
+class QuickKillWorker(Worker):
+    def execute_job(self, job, queue):
+        super().execute_job(job, queue)
+        signal.signal(signal.SIGINT, self.request_force_stop)
+        signal.signal(signal.SIGTERM, self.request_force_stop)
+
 try:
     with Connection(StrictRedis(host = 'redis', port = 6379)):
-        worker = Worker(environ['HOSTNAME'])
-        signal.signal(signal.SIGINT, worker.request_force_stop)
-        signal.signal(signal.SIGTERM, worker.request_force_stop)
+        worker = QuickKillWorker(environ['HOSTNAME'])
         worker.work(logging_level = environ['LOG_LEVEL'])
 
 except Exception as exc:

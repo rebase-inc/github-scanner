@@ -98,10 +98,10 @@ class GithubCodeScanner(object):
 
     def scan_repo(self, name, cleanup = True):
         if self.authorized:
-            self.crawler.crawl_individual_public_repo(self.github_id, name, self.callback, remote_only = True)
+            self.crawler.crawl_individual_public_repo(self.github_id, name, self.add_step, remote_only = True)
             self.crawler.crawl_individual_public_repo(self.github_id, name, self.callback, cleanup = cleanup)
         else:
-            self.crawler.crawl_individual_authorized_repo(name, self.callback, remote_only = True)
+            self.crawler.crawl_individual_authorized_repo(name, self.add_step, remote_only = True)
             self.crawler.crawl_individual_authorized_repo(name, self.callback, cleanup = cleanup)
 
     def scan_commit(self, repo_name, commit_sha, cleanup = True):
@@ -120,12 +120,12 @@ def scan_authorized_repos(access_token: str, force_overwrite = False):
     scanner = GithubCodeScanner(access_token)
     scanner.scan_all(force_overwrite = force_overwrite)
 
-def scan_individual_public_repo(github_id, repo_name, cleanup=False):
+def scan_public_repo(github_id, repo_name, cleanup=True):
     with GithubToken(USERNAME, PASSWORD, note = github_id) as token:
         scanner = GithubCodeScanner(token, github_id)
         scanner.scan_repo(repo_name, cleanup)
 
-def scan_individual_public_commit(github_id, repo_name, commit_sha, cleanup=False):
+def scan_public_commit(github_id, repo_name, commit_sha, cleanup=True):
     with GithubToken(USERNAME, PASSWORD, note = github_id) as token:
         scanner = GithubCodeScanner(token, github_id)
         scanner.scan_commit(repo_name, commit_sha, cleanup)
