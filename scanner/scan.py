@@ -125,6 +125,11 @@ def scan_public_repo(github_id, repo_name, cleanup=True):
         scanner = GithubCodeScanner(token, github_id)
         scanner.scan_repo(repo_name, cleanup)
 
+def scan_private_repo(auth_token, repo_name, cleanup=True):
+    scanner = GithubCodeScanner(auth_token)
+    scanner.scan_repo(repo_name, cleanup)
+    LOGGER.info(str(scanner.knowledge.simple_projection))
+
 def scan_public_commit(github_id, repo_name, commit_sha, cleanup=True):
     with GithubToken(USERNAME, PASSWORD, note = github_id) as token:
         scanner = GithubCodeScanner(token, github_id)
