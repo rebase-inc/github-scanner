@@ -106,8 +106,10 @@ class GithubCodeScanner(object):
 
     def scan_commit(self, repo_name, commit_sha, cleanup = True):
         if self.authorized:
+            self.crawler.crawl_individual_public_commit(self.github_id, repo_name, commit_sha, self.add_step, remote_only=True)
             self.crawler.crawl_individual_public_commit(self.github_id, repo_name, commit_sha, self.callback, cleanup = cleanup)
         else:
+            self.crawler.crawl_individual_authorized_commit(repo_name, commit_sha, self.add_step, remote_only=True)
             self.crawler.crawl_individual_authorized_commit(repo_name, commit_sha, self.callback, cleanup = cleanup)
 
 
