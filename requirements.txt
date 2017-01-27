@@ -5,8 +5,5 @@ redis
 psycopg2
 gitpython
 
-codeparser
 authgen
-githubcrawler
-knowledgemodel
-rsyslog
+githubscanner

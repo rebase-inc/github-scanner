@@ -1,15 +1,14 @@
+import os
 import signal
 import rsyslog
 import logging
-from os import environ
-from multiprocessing import current_process
+import multiprocessing
 
 from redis import StrictRedis
 from rq import Worker, Queue, Connection
 
-current_process().name = environ['HOSTNAME']
-rsyslog.setup(log_level = environ['LOG_LEVEL'])
-LOGGER = logging.getLogger()
+multiprocessing.current_process().name = os.environ['HOSTNAME']
+rsyslog.setup(log_level = os.environ['LOG_LEVEL'])
 
 class QuickKillWorker(Worker):
     def execute_job(self, job, queue):
@@ -17,10 +16,11 @@ class QuickKillWorker(Worker):
         signal.signal(signal.SIGINT, self.request_force_stop)
         signal.signal(signal.SIGTERM, self.request_force_stop)
 
-try:
-    with Connection(StrictRedis(host = 'redis', port = 6379)):
-        worker = QuickKillWorker(environ['HOSTNAME'])
-        worker.work(logging_level = environ['LOG_LEVEL'])
+if __name__ == '__main__':
+    try:
+        with Connection(StrictRedis(host = 'redis', port = 6379)):
+            worker = QuickKillWorker(os.environ['HOSTNAME'])
+            worker.work(logging_level = os.environ['LOG_LEVEL'])
 
-except Exception as exc:
-    LOGGER.exception('Unhandled exception!')
+    except Exception as exc:
+        LOGGER.exception('Unhandled exception!')
