@@ -20,7 +20,8 @@ ARG PYTHON_COMMONS_HOST
 ARG PYTHON_COMMONS_SCHEME
 ARG PYTHON_COMMONS_PORT
 
-COPY ./requirements.txt /
+COPY requirements.txt /
+
 RUN source /venv/bin/activate && \
     pip install --upgrade pip && \
     pip install \
@@ -30,6 +31,8 @@ RUN source /venv/bin/activate && \
         --extra-index-url ${PYTHON_COMMONS_SCHEME}${PYTHON_COMMONS_HOST}:${PYTHON_COMMONS_PORT} \
         --requirement /requirements.txt
 
-ENV PYTHONPATH /pylibs
-COPY ./run.py /
+ENV PYTHONPATH /usr/app/src
+COPY run.py /
+COPY scanner /usr/app/src/scanner
+
 CMD ["/venv/bin/python", "-m", "run"]
