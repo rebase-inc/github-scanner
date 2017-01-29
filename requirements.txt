@@ -6,7 +6,4 @@ redis
 rq
 
 authgen
-codeparser
-githubcrawler
-knowledgemodel
-rsyslog
+githubscanner
