@@ -20,7 +20,7 @@ USERNAME = os.environ['GITHUB_CRAWLER_USERNAME']
 PASSWORD = os.environ['GITHUB_CRAWLER_PASSWORD']
 
 
-def scan_public_repos(github_id: str, force_overwrite = True):
+def scan_public_repos(github_id: str, force_overwrite = False):
     with GithubToken(USERNAME, PASSWORD, note = github_id) as access_token:
         scanner = GithubCodeScanner(access_token, S3_BUCKET, CLONE_CONFIG, S3_CONFIG, github_id)
         scanner.scan_all(force_overwrite = force_overwrite)
@@ -29,16 +29,16 @@ def scan_authorized_repos(access_token: str, force_overwrite = True):
     scanner = GithubCodeScanner(access_token, S3_BUCKET, CLONE_CONFIG, S3_CONFIG)
     scanner.scan_all(force_overwrite = force_overwrite)
 
-def scan_public_repo(github_id, repo_name, cleanup=True):
+def scan_public_repo(github_id, repo_name, cleanup = True):
     with GithubToken(USERNAME, PASSWORD, note = github_id) as access_token:
         scanner = GithubCodeScanner(access_token, S3_BUCKET, CLONE_CONFIG, S3_CONFIG, github_id)
         scanner.scan_repo(repo_name, cleanup)
 
-def scan_private_repo(access_token, repo_name, cleanup=True):
+def scan_private_repo(access_token, repo_name, cleanup = True):
     scanner = GithubCodeScanner(access_token, S3_BUCKET, CLONE_CONFIG, S3_CONFIG)
     scanner.scan_repo(repo_name, cleanup)
 
-def scan_public_commit(github_id, repo_name, commit_sha, cleanup=True):
+def scan_public_commit(github_id, repo_name, commit_sha, cleanup = True):
     with GithubToken(USERNAME, PASSWORD, note = github_id) as access_token:
         scanner = GithubCodeScanner(access_token, S3_BUCKET, CLONE_CONFIG, S3_CONFIG, github_id)
         scanner.scan_commit(repo_name, commit_sha, cleanup)
