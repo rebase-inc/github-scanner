@@ -1,9 +1,9 @@
-botocore
 boto3
-rq
-redis
-psycopg2
+botocore
 gitpython
+psycopg2
+redis
+rq
 
 authgen
 githubscanner
