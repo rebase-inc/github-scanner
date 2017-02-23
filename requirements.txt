@@ -1,9 +1,6 @@
-boto3
-botocore
-gitpython
-psycopg2
 redis
 rq
 
 authgen
 githubscanner
+
