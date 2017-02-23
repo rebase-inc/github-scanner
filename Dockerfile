@@ -1,4 +1,4 @@
-FROM alpine
+FROM python:alpine
 
 RUN apk --quiet update && \
     apk --quiet add \
@@ -6,13 +6,9 @@ RUN apk --quiet update && \
         gcc \
         git \
         libpq \
-        libmagic \
-        musl-dev \
         postgresql-dev \
-        py-virtualenv \
-        python3-dev \
-        python3 && \
-    pyvenv /venv && \
+        musl-dev && \
+    python3.6 -m venv /venv && \
     mkdir -p /big_repos
 
 
